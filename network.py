@@ -70,3 +70,38 @@ class NetworkMonitor:
             return f"Successfully connected to the gateway {gateway}."
 
         return f"Failed to connect to the gateway {gateway}."
+    
+    def get_ping_time(self, host):
+        if host is None:
+            return None
+
+        result = subprocess.run(
+        ["ping", "-c", "1", host],
+        capture_output=True,
+        text=True
+    )
+
+        if result.returncode != 0:
+         return None
+
+        return result.stdout
+    
+    def get_ping_time(self, host):
+        if host is None:
+            return None
+
+        result = subprocess.run(
+            ["ping", "-c", "1", host],
+            capture_output=True,
+            text=True
+        )
+
+        if result.returncode != 0:
+            return None
+
+        for line in result.stdout.splitlines():
+            if "time=" in line:
+                time_part = line.split("time=")[1]
+                return float(time_part.split()[0])
+
+        return None

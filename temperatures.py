@@ -1,6 +1,9 @@
 import psutil
 
 class TemperatureMonitor:
+    def __init__(self):
+        self._cpu_temperature = None
+
     def get_cpu_temperature(self):
         """
         Get the current CPU temperature in Celsius.
