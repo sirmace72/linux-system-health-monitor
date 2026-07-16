@@ -60,7 +60,10 @@ def main():
     gateway = network.get_default_gateway()
     ping_result = network.get_ping_time(gateway)
 
-    print(f"Ping Time: {ping_result}ms")
-          
+    if ping_result is not None:
+        print(f"Gateway Ping: {ping_result:.2f} ms")
+    else:
+        print("Gateway Ping: Unreachable")
+
 if __name__ == "__main__":
     main()
