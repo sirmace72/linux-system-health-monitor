@@ -19,6 +19,7 @@ def get_memory_usage():
     """
     memory = psutil.virtual_memory()
     return memory.percent
+
 def get_disk_usage():
     """
     Get the current disk usage percentage.

@@ -11,3 +11,11 @@ def get_health_status(value):
         return "Warning"
     else:
         return "Critical"
+
+def get_temperature_status(temperature):
+    if temperature < 70:
+        return "Healthy"
+    elif temperature < 85:
+        return "Warning"
+    else:
+        return "Critical"
