@@ -105,3 +105,4 @@ class NetworkMonitor:
                 return float(time_part.split()[0])
 
         return None
+    
