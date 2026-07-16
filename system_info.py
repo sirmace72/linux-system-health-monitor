@@ -1,3 +1,7 @@
+import platform
+import socket
+
+
 def get_hostname():
     """
     Get the hostname of the current machine.
@@ -5,7 +9,6 @@ def get_hostname():
     Returns:
         str: The hostname of the machine.
     """
-    import socket
     return socket.gethostname()
 
 def get_os():
@@ -15,7 +18,6 @@ def get_os():
     Returns:
         str: The operating system name and version.
     """
-    import platform
     return f"{platform.system()} {platform.release()}"
 
 def get_kernel():
@@ -25,7 +27,7 @@ def get_kernel():
     Returns:
         str: The kernel version.
     """
-    import platform
+    
     return platform.version()
 
 def get_architecture():
@@ -35,7 +37,6 @@ def get_architecture():
     Returns:
         str: The architecture (e.g., 'x86_64', 'arm64').
     """
-    import platform
     return platform.machine()
 
 def get_cpu_model():
