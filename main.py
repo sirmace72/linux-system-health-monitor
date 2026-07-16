@@ -1,52 +1,57 @@
-# main.py
+from system_info import SystemInfo
+from metrics import SystemMetrics
+from temperatures import TemperatureMonitor
+from network import NetworkMonitor
+from health import HealthMonitor
 
-from system_info import (
-    get_hostname,
-    get_os,
-    get_kernel,
-    get_architecture,
-    get_cpu_model,
 
-)
-from network import get_active_interface, get_ip_address, get_default_gateway
-import metrics
-import health
-from temperatures import get_cpu_temperature
+system = SystemInfo()
+metrics = SystemMetrics()
+temperatures = TemperatureMonitor()
+network = NetworkMonitor()
+health = HealthMonitor()
+
 
 cpu_usage = metrics.get_cpu_usage()
 memory_usage = metrics.get_memory_usage()
 disk_usage = metrics.get_disk_usage()
-cpu_temperature = get_cpu_temperature()
+cpu_temperature = temperatures.get_cpu_temperature()
 
-print(f"==============================")
-print(f"      SYSTEM INFORMATION")
-print(f"==============================")
-print(f"Hostname: {get_hostname()}")
-print(f"Operating System: {get_os()}")
-print(f"Kernel Version: {get_kernel()}")
-print(f"Architecture: {get_architecture()}")
-print(f"CPU Model: {get_cpu_model()}")
+
+print("==============================")
+print("      SYSTEM INFORMATION")
+print("==============================")
+print(f"Hostname: {system.get_hostname()}")
+print(f"Operating System: {system.get_os()}")
+print(f"Kernel Version: {system.get_kernel()}")
+print(f"Architecture: {system.get_architecture()}")
+print(f"CPU Model: {system.get_cpu_model()}")
+
 print()
-print(f"==============================")
-print(f"      SYSTEM METRICS")
-print(f"==============================")
-print(f"CPU Usage: {cpu_usage}% - {health.get_health_status(cpu_usage)}")
-print(f"Memory Usage: {memory_usage}% - {health.get_health_status(memory_usage)}")
-print(f"Disk Usage: {disk_usage}% - {health.get_health_status(disk_usage)}")
-
-cpu_temperature = get_cpu_temperature()
-
-if cpu_temperature is not None:
-    print(f"CPU Temperature: {cpu_temperature:.1f}°C")
-else:
-    print("CPU Temperature: Unavailable")
-    
-print(f"")
-
+print("==============================")
+print("      SYSTEM METRICS")
+print("==============================")
+print(
+    f"CPU Usage: {cpu_usage}% - "
+    f"{health.get_usage_status(cpu_usage)}"
+)
+print(
+    f"Memory Usage: {memory_usage}% - "
+    f"{health.get_usage_status(memory_usage)}"
+)
+print(
+    f"Disk Usage: {disk_usage}% - "
+    f"{health.get_usage_status(disk_usage)}"
+)
+print(
+    f"CPU Temperature: "
+    f"{cpu_temperature if cpu_temperature is not None else 'Unavailable'}°C - "
+    f"{health.get_temperature_status(cpu_temperature) if cpu_temperature is not None else 'Unavailable'}"
+)
 print()
 print("==============================")
 print("      NETWORK INFORMATION")
 print("==============================")
-print(f"Interface: {get_active_interface()}")
-print(f"IP Address: {get_ip_address()}")
-print(f"Gateway: {get_default_gateway()}")
+print(f"Interface: {network.get_active_interface()}")
+print(f"IP Address: {network.get_ip_address()}")
+print(f"Gateway: {network.get_default_gateway()}")

@@ -1,56 +1,72 @@
 import subprocess
 
 
-def get_active_interface():
-    result = subprocess.run(
-        ["ip", "route"],
-        capture_output=True,
-        text=True
-    )
+class NetworkMonitor:
+    def get_active_interface(self):
+        result = subprocess.run(
+            ["ip", "route"],
+            capture_output=True,
+            text=True
+        )
 
-    for line in result.stdout.splitlines():
-        if line.startswith("default"):
-            parts = line.split()
+        for line in result.stdout.splitlines():
+            if line.startswith("default"):
+                parts = line.split()
 
-            if "dev" in parts:
-                return parts[parts.index("dev") + 1]
+                if "dev" in parts:
+                    return parts[parts.index("dev") + 1]
 
-    return None
-
-
-def get_ip_address():
-    interface = get_active_interface()
-
-    if interface is None:
         return None
 
-    result = subprocess.run(
-        ["ip", "-4", "addr", "show", interface],
-        capture_output=True,
-        text=True
-    )
+    def get_ip_address(self):
+        interface = self.get_active_interface()
 
-    for line in result.stdout.splitlines():
-        line = line.strip()
+        if interface is None:
+            return None
 
-        if line.startswith("inet "):
-            return line.split()[1].split("/")[0]
+        result = subprocess.run(
+            ["ip", "-4", "addr", "show", interface],
+            capture_output=True,
+            text=True
+        )
 
-    return None
+        for line in result.stdout.splitlines():
+            line = line.strip()
 
+            if line.startswith("inet "):
+                return line.split()[1].split("/")[0]
 
-def get_default_gateway():
-    result = subprocess.run(
-        ["ip", "route"],
-        capture_output=True,
-        text=True
-    )
+        return None
 
-    for line in result.stdout.splitlines():
-        if line.startswith("default"):
-            parts = line.split()
+    def get_default_gateway(self):
+        result = subprocess.run(
+            ["ip", "route"],
+            capture_output=True,
+            text=True
+        )
 
-            if "via" in parts:
-                return parts[parts.index("via") + 1]
+        for line in result.stdout.splitlines():
+            if line.startswith("default"):
+                parts = line.split()
 
-    return None
+                if "via" in parts:
+                    return parts[parts.index("via") + 1]
+
+        return None
+
+    def get_gateway_connection_status(self):
+        gateway = self.get_default_gateway()
+
+        if gateway is None:
+            return "No default gateway found."
+
+        result = subprocess.run(
+            ["ping", "-c", "1", gateway],
+            capture_output=True,
+            text=True
+        )
+
+        if result.returncode == 0:
+            return f"Successfully connected to the gateway {gateway}."
+
+        return f"Failed to connect to the gateway {gateway}."
