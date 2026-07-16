@@ -9,6 +9,11 @@ from system_info import (
 
 )
 import metrics
+import health
+
+cpu_usage = metrics.get_cpu_usage()
+memory_usage = metrics.get_memory_usage()
+disk_usage = metrics.get_disk_usage()
 
 print(f"==============================")
 print(f"      SYSTEM INFORMATION")
@@ -22,6 +27,6 @@ print()
 print(f"==============================")
 print(f"      SYSTEM METRICS")
 print(f"==============================")
-print(f"CPU Usage: {metrics.get_cpu_usage()}%")
-print(f"Memory Usage: {metrics.get_memory_usage()}%")
-print(f"Disk Usage: {metrics.get_disk_usage()}%")
+print(f"CPU Usage: {cpu_usage}% - {health.get_health_status(cpu_usage)}")
+print(f"Memory Usage: {memory_usage}% - {health.get_health_status(memory_usage)}")
+print(f"Disk Usage: {disk_usage}% - {health.get_health_status(disk_usage)}")
