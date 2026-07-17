@@ -117,5 +117,22 @@
         "gateway": "10.0.0.1",
         "gateway_ping": 1.78,
         "timestamp": "2026-07-17T12:24:56.311993"
+    },
+    {
+        "hostname": "sirmace72",
+        "cpu_usage": 4.2,
+        "cpu_status": "Healthy",
+        "memory_usage": 50.8,
+        "memory_status": "Healthy",
+        "disk_usage": 25.7,
+        "disk_status": "Healthy",
+        "temperature_status": "Healthy",
+        "cpu_temperature": 35.875,
+        "internet_ping": 27.6,
+        "interface": "wlan0",
+        "ip_address": "10.0.0.208",
+        "gateway": "10.0.0.1",
+        "gateway_ping": 1.94,
+        "timestamp": "2026-07-17T14:38:07.492119"
     }
 ]
