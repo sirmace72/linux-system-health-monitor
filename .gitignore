@@ -1,0 +1,25 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Virtual environments
+.venv/
+
+# Environment variables
+.env
+
+# Configuration files
+config.json
+settings.json
+credentials.json
+
+# Logs
+logs/
+
+# Data files
+data/
+
+# History files
+history.json
+Test/__pycache__/
