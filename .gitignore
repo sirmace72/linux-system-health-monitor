@@ -9,6 +9,7 @@ __pycache__/
 # Environment variables
 .env
 
+hp_fan_control.py
 # Configuration files
 config.json
 settings.json
