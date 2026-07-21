@@ -3,7 +3,7 @@
 
 from monitor import SystemHealthMonitor
 from history import HistoryLogger
-from hp_fan_control import set_max_speed, set_min_speed, get_current_speed, get_hwmon_path
+from hp_fan_control import set_max_speed, set_min_speed, set_fan_speed, get_current_speed, get_hwmon_path
 import sys
 import os
 
@@ -14,9 +14,12 @@ def show_menu():
     print("="*50)
     print("1. Show System Health Report")
     print("2. Show History Summary")
-    print("3. Set Fan to Maximum Speed")
-    print("4. Set Fan to Minimum Speed")
-    print("5. Check Current Fan Speed")
+    print("3. Set Fan to Maximum Speed (100%)")
+    print("4. Set Fan to 75%")
+    print("5. Set Fan to 50%")
+    print("6. Set Fan to 25%")
+    print("7. Set Fan to Minimum Speed")
+    print("8. Check Current Fan Speed")
     print("0. Exit")
     print("="*50)
     return input("Choose option: ").strip()
@@ -110,10 +113,16 @@ def main():
         elif choice == "2":
             show_history_summary()
         elif choice == "3":
-            set_max_speed()
+            set_fan_speed(100)
         elif choice == "4":
-            set_min_speed()
+            set_fan_speed(75)
         elif choice == "5":
+            set_fan_speed(50)
+        elif choice == "6":
+            set_fan_speed(25)
+        elif choice == "7":
+            set_min_speed()
+        elif choice == "8":
             speeds = get_current_speed()
 
             if speeds is not None:

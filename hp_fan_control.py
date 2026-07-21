@@ -35,7 +35,14 @@ def write_value(path, value):
         file.write(str(value))
 
 
-def set_max_speed():
+def set_fan_speed(percent):
+    """Set fan speed to a specific percentage (25, 50, 75, or 100)."""
+    valid = [25, 50, 75, 100]
+    if percent not in valid:
+        print(f"ERROR: Invalid percentage. Choose from {valid}")
+        return False
+
+    pwm_value = round(percent / 100 * 255)
     hwmon_path = get_hwmon_path()
 
     if hwmon_path is None:
@@ -44,16 +51,21 @@ def set_max_speed():
 
     try:
         write_root(f"{hwmon_path}/pwm1_enable", 1)
-        write_root(f"{hwmon_path}/pwm1", 255)
-
-        print("✓ Fans set to maximum speed")
+        write_root(f"{hwmon_path}/pwm1", pwm_value)
+        print(f"✓ Fans set to {percent}% (PWM: {pwm_value}/255)")
         return True
 
     except subprocess.CalledProcessError as error:
         print(f"ERROR: {error}")
         return False
 
+
+def set_max_speed():
+    return set_fan_speed(100)
+
+
 def set_min_speed():
+    """Set fans to minimum speed (0%)."""
     hwmon_path = get_hwmon_path()
 
     if hwmon_path is None:
