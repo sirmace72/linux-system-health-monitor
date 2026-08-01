@@ -1,0 +1,34 @@
+# System Health Monitor Configuration
+
+[thresholds]
+# CPU / Memory / Disk usage thresholds (percentage)
+usage_warning = 70
+usage_critical = 90
+
+# Temperature thresholds (Celsius)
+temp_warning = 70
+temp_critical = 85
+
+[report]
+# History file path
+history_file = "history.json"
+
+# CPU usage sampling interval (seconds)
+cpu_interval = 0.5
+
+# Disk partitions to monitor (empty string = root "/" only)
+# To monitor multiple partitions, set check_all_partitions = true
+check_all_partitions = true
+
+# Ping target for internet check
+internet_ping_host = "1.1.1.1"
+
+[display]
+# Show GPU info in reports (requires pynvml or pyamdgpuinfo installed)
+show_gpu = true
+
+# Show disk I/O stats in reports
+show_disk_io = true
+
+# Show network transfer stats in reports
+show_net_io = true

@@ -14,3 +14,5 @@ health-monitor = "main:main"
 
 [project.optional-dependencies]
 dev = ["pytest"]
+nvidia = ["pynvml"]
+amd = ["pyamdgpuinfo"]

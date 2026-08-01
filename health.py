@@ -1,21 +1,38 @@
-class HealthMonitor:
-    """Evaluate metrics against predefined thresholds."""
+from config import Config
 
-    WARNING_USAGE: float = 70.0
-    CRITICAL_USAGE: float = 90.0
-    WARNING_TEMP: float = 70.0
-    CRITICAL_TEMP: float = 85.0
+
+class HealthMonitor:
+    """Evaluate metrics against configurable thresholds."""
+
+    def __init__(self, config: Config | None = None) -> None:
+        self._config = config or Config()
+
+    @property
+    def warning_usage(self) -> float:
+        return self._config.usage_warning
+
+    @property
+    def critical_usage(self) -> float:
+        return self._config.usage_critical
+
+    @property
+    def warning_temp(self) -> float:
+        return self._config.temp_warning
+
+    @property
+    def critical_temp(self) -> float:
+        return self._config.temp_critical
 
     def get_usage_status(self, value: float) -> str:
-        if value < self.WARNING_USAGE:
+        if value < self.warning_usage:
             return "Healthy"
-        elif value < self.CRITICAL_USAGE:
+        elif value < self.critical_usage:
             return "Warning"
         return "Critical"
 
     def get_temperature_status(self, temperature: float) -> str:
-        if temperature < self.WARNING_TEMP:
+        if temperature < self.warning_temp:
             return "Healthy"
-        elif temperature < self.CRITICAL_TEMP:
+        elif temperature < self.critical_temp:
             return "Warning"
         return "Critical"

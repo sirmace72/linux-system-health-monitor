@@ -2,8 +2,11 @@
 """Unified System Health Monitor with HP Fan Control"""
 
 import sys
+from typing import Any
+
 import logging
 
+from config import Config
 from cli import get_arguments
 from monitor import SystemHealthMonitor
 from history import HistoryLogger
@@ -20,6 +23,27 @@ from hp_fan_control import (
 logger = logging.getLogger(__name__)
 
 
+def _fmt_uptime(seconds: float) -> str:
+    """Format uptime seconds into human-readable string."""
+    days = int(seconds // 86400)
+    hours = int((seconds % 86400) // 3600)
+    minutes = int((seconds % 3600) // 60)
+    parts: list[str] = []
+    if days > 0:
+        parts.append(f"{days}d")
+    if hours > 0:
+        parts.append(f"{hours}h")
+    parts.append(f"{minutes}m")
+    return " ".join(parts)
+
+
+def _fmt_mb(mb: float) -> str:
+    """Format megabytes with appropriate precision."""
+    if mb >= 100:
+        return f"{mb:.0f} MB"
+    return f"{mb:.1f} MB"
+
+
 def run_cli_command(command: str) -> None:
     """Handle headless CLI commands from argparse."""
     if command == "status":
@@ -34,11 +58,13 @@ def run_cli_command(command: str) -> None:
 
 def show_full_report() -> None:
     """Show full system report including system info."""
-    monitor = SystemHealthMonitor()
+    config = Config()
+    monitor = SystemHealthMonitor(config)
     report = monitor.get_system_report()
     system = SystemInfo()
 
     logger.info("Saving full report to history")
+    HistoryLogger(config.history_file).save_report(report)
 
     print("\n" + "=" * 40)
     print("       FULL SYSTEM REPORT")
@@ -49,6 +75,7 @@ def show_full_report() -> None:
     print(f"Kernel:       {system.get_kernel()}")
     print(f"Architecture: {system.get_architecture()}")
     print(f"CPU:          {system.get_cpu_model()}")
+    print(f"Uptime:       {_fmt_uptime(report.get('uptime_seconds', 0))}")
     print()
     print(
         f"CPU Usage:      {report.get('cpu_usage', 0):.1f}% - "
@@ -63,6 +90,10 @@ def show_full_report() -> None:
         f"{report.get('disk_status', 'Unknown')}"
     )
 
+    swap = report.get("swap_usage")
+    if swap is not None:
+        print(f"Swap Usage:     {swap:.1f}%")
+
     cpu_temp = report.get("cpu_temperature")
     if cpu_temp is not None:
         print(
@@ -72,8 +103,48 @@ def show_full_report() -> None:
     else:
         print("CPU Temperature: Unavailable")
 
+    # GPU
+    gpu_info = report.get("gpu_info")
+    if gpu_info:
+        print()
+        for i, gpu in enumerate(gpu_info):
+            vendor = gpu.get("vendor", "unknown").upper()
+            name = gpu.get("name", "Unknown")
+            temp = gpu.get("temp")
+            usage = gpu.get("usage")
+            mem_used = gpu.get("mem_used")
+            mem_total = gpu.get("mem_total")
+
+            print(f"  GPU {i+1} ({vendor}): {name}")
+            parts: list[str] = []
+            if temp is not None:
+                parts.append(f"{temp:.0f}°C")
+            if usage is not None:
+                parts.append(f"{usage:.0f}%")
+            if mem_used is not None and mem_total is not None:
+                parts.append(f"{_fmt_mb(mem_used)}/{_fmt_mb(mem_total)}")
+            if parts:
+                print(f"    {' | '.join(parts)}")
+
     print()
-    show_network_block(report)
+    _show_network_block(report)
+
+    # Disk IO
+    disk_io_total = report.get("disk_io_total")
+    if disk_io_total:
+        print()
+        print("  Disk I/O (total since boot):")
+        print(f"    Read:  {_fmt_mb(disk_io_total.get('read_mb', 0))}")
+        print(f"    Write: {_fmt_mb(disk_io_total.get('write_mb', 0))}")
+
+    # Network IO
+    net_io_total = report.get("net_io_total")
+    if net_io_total:
+        print()
+        print("  Network Transfer (total):")
+        print(f"    Sent:     {_fmt_mb(net_io_total.get('sent_mb', 0))}")
+        print(f"    Received: {_fmt_mb(net_io_total.get('received_mb', 0))}")
+
     print("=" * 40)
 
 
@@ -90,7 +161,7 @@ def show_network_status() -> None:
     print("\n" + "=" * 40)
     print("       NETWORK STATUS")
     print("=" * 40)
-    show_network_block({
+    _show_network_block({
         "interface": interface,
         "ip_address": ip_address,
         "gateway": gateway,
@@ -100,7 +171,7 @@ def show_network_status() -> None:
     print("=" * 40)
 
 
-def show_network_block(report: dict) -> None:
+def _show_network_block(report: dict[str, Any]) -> None:
     """Print the network section of a report."""
     print(f"Interface: {report.get('interface', 'N/A')}")
     print(f"IP Address: {report.get('ip_address', 'N/A')}")
@@ -140,31 +211,34 @@ def show_menu() -> str:
 
 def show_health_report() -> None:
     """Show system health report"""
-    monitor = SystemHealthMonitor()
+    config = Config()
+    monitor = SystemHealthMonitor(config)
     report = monitor.get_system_report()
 
     logger.info("Saving health report to history")
+    HistoryLogger(config.history_file).save_report(report)
 
     print("\n" + "=" * 40)
     print("       SYSTEM HEALTH REPORT")
     print("=" * 40)
 
     print(f"Hostname: {report.get('hostname', 'N/A')}")
-
     print(
         f"CPU Usage: {report.get('cpu_usage', 0):.1f}% - "
         f"{report.get('cpu_status', 'Unknown')}"
     )
-
     print(
         f"Memory Usage: {report.get('memory_usage', 0):.1f}% - "
         f"{report.get('memory_status', 'Unknown')}"
     )
-
     print(
         f"Disk Usage: {report.get('disk_usage', 0):.1f}% - "
         f"{report.get('disk_status', 'Unknown')}"
     )
+
+    swap = report.get("swap_usage")
+    if swap is not None:
+        print(f"Swap Usage: {swap:.1f}%")
 
     cpu_temp = report.get("cpu_temperature")
 
@@ -176,9 +250,25 @@ def show_health_report() -> None:
     else:
         print("CPU Temperature: Unavailable")
 
-    print()
-    show_network_block(report)
+    # GPU
+    gpu_info = report.get("gpu_info")
+    if gpu_info:
+        print()
+        for i, gpu in enumerate(gpu_info):
+            vendor = gpu.get("vendor", "unknown").upper()
+            name = gpu.get("name", "Unknown")
+            temp = gpu.get("temp")
+            usage = gpu.get("usage")
 
+            parts: list[str] = [f"  GPU {i+1} ({vendor}): {name}"]
+            if temp is not None:
+                parts.append(str())
+                print(f"    Temp: {temp:.0f}°C")
+            if usage is not None:
+                print(f"    Usage: {usage:.0f}%")
+
+    print()
+    _show_network_block(report)
     print("=" * 40)
 
 
