@@ -32,3 +32,15 @@ show_disk_io = true
 
 # Show network transfer stats in reports
 show_net_io = true
+
+# Show process top-N in reports
+show_process = true
+
+# Number of top processes to show
+top_n_processes = 5
+
+# Show disk SMART health in full-report
+show_smart = true
+
+# Enable colored output (requires rich or colorama)
+color_output = true

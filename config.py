@@ -71,6 +71,22 @@ class Config:
     def show_net_io(self) -> bool:
         return bool(self._get("display", "show_net_io"))
 
+    @property
+    def show_process(self) -> bool:
+        return bool(self._get("display", "show_process"))
+
+    @property
+    def top_n_processes(self) -> int:
+        return int(self._get("display", "top_n_processes"))
+
+    @property
+    def show_smart(self) -> bool:
+        return bool(self._get("display", "show_smart"))
+
+    @property
+    def color_output(self) -> bool:
+        return bool(self._get("display", "color_output"))
+
     # -- internal --
 
     def _load(self) -> dict[str, Any] | None:
@@ -116,5 +132,9 @@ _DEFAULTS: dict[str, dict[str, Any]] = {
         "show_gpu": True,
         "show_disk_io": True,
         "show_net_io": True,
+        "show_process": True,
+        "top_n_processes": 5,
+        "show_smart": True,
+        "color_output": True,
     },
 }

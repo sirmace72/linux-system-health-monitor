@@ -1,15 +1,22 @@
 # Linux System Health Monitor
 
-A comprehensive system health monitoring tool for Linux with HP fan control integration. This utility monitors your system's performance, temperature, and network status, and provides an interactive menu-driven interface.
+A comprehensive system health monitoring tool for Linux with HP fan control integration. This utility monitors your system's performance, temperature, network status, and provides an interactive menu-driven interface.
 
 ## Features
 
-- **Real-time System Monitoring**: CPU usage, memory usage, and disk usage
+- **Real-time System Monitoring**: CPU usage, memory usage, disk usage, and swap usage
 - **Temperature Monitoring**: CPU temperature tracking (AMD Ryzen with k10temp sensor)
+- **GPU Monitoring**: NVIDIA (via pynvml) and AMD (via pyamdgpuinfo) GPU temperature/usage
+- **Disk I/O Metrics**: Read/write throughput monitoring via psutil
+- **Network Transfer Stats**: Bytes sent/received tracking
+- **Disk SMART Health**: Drive health status via smartctl
+- **Process Monitoring**: Top-N processes by CPU/memory usage
+- **System Uptime**: Current system boot uptime
 - **Network Health**: Active network interface, IP address, gateway connectivity, and ping times
 - **HP Fan Control**: Set fans to maximum/minimum speed and check current fan speeds
 - **History Logging**: Automatically saves all health reports to a JSON file for tracking trends
-- **Status Alerts**: Color-coded status indicators (Healthy, Warning, Critical) based on configurable thresholds
+- **Color Output**: Color-coded status indicators via rich library
+- **Configurable Thresholds**: All thresholds configurable via `config.toml`
 
 ## Hardware Requirements
 
@@ -22,7 +29,20 @@ A comprehensive system health monitoring tool for Linux with HP fan control inte
 ### Dependencies
 
 ```bash
-pip3 install psutil
+pip install psutil rich
+```
+
+### Optional Dependencies
+
+```bash
+# NVIDIA GPU monitoring
+pip install pynvml
+
+# AMD GPU monitoring
+pip install pyamdgpuinfo
+
+# Disk SMART health
+sudo apt install smartmontools
 ```
 
 ### Setup
@@ -40,7 +60,7 @@ pip3 install psutil
 
 3. Install dependencies:
    ```bash
-   pip install psutil
+   pip install -e .
    ```
 
 4. Make the script executable (optional):
@@ -60,17 +80,29 @@ python3 main.py
 The program presents an interactive menu:
 
 1. **Show System Health Report** - Displays current system status with all metrics
-2. **Show History Summary** - Shows historical statistics from saved reports
-3. **Set Fan to Maximum Speed** - Sets fans to 100% PWM speed
-4. **Set Fan to Minimum Speed** - Sets fans to minimum PWM speed
-5. **Check Current Fan Speed** - Shows current fan RPM values
-6. **Exit** - Exit the program
+2. **Show Full Report** - Extended report with all partitions, processes, and SMART health
+3. **Show History Summary** - Shows historical statistics from saved reports
+4. **Set Fan to Maximum Speed** - Sets fans to 100% PWM speed
+5. **Set Fan to 75/50/25%** - Intermediate fan speed options
+6. **Set Fan to Minimum Speed** - Sets fans to minimum PWM speed
+7. **Check Current Fan Speed** - Shows current fan RPM values
+8. **Exit** - Exit the program
 
 ### Headless Mode
 
-You can also get a quick system check without the menu:
+Run specific commands from the CLI:
 ```bash
-python3 -c "from monitor import SystemHealthMonitor; from history import HistoryLogger; m = SystemHealthMonitor(); r = m.get_system_report(); l = HistoryLogger(); l.save_report(r); print(r)"
+# Quick status check
+python3 main.py status
+
+# Network status only
+python3 main.py network
+
+# History summary
+python3 main.py history
+
+# Full report
+python3 main.py full-report
 ```
 
 ## How It Works
@@ -85,10 +117,17 @@ linux-system-health-monitor/
 ├── monitor.py           # Orchestrates all monitoring components
 ├── history.py           # JSON report storage and history tracking
 ├── network.py           # Network interface and connectivity monitoring
+├── net_io.py            # Network transfer statistics
+├── disk_io.py           # Disk I/O metrics
+├── gpu.py               # GPU monitoring (NVIDIA/AMD)
+├── smart_health.py      # Disk SMART health via smartctl
 ├── system_info.py       # System metadata collection
-├── metrics.py           # Resource metrics (CPU, RAM, disk)
+├── metrics.py           # Resource metrics (CPU, RAM, disk) + process monitoring
 ├── temperatures.py      # Temperature monitoring via psutil
 ├── health.py            # Status threshold evaluation
+├── config.py            # Configuration loader
+├── config.toml          # User-customizable configuration
+├── color.py             # Color output helpers
 ├── hp_fan_control.py    # HP-specific fan control via hwmon
 ├── README.md            # This documentation file
 └── history.json         # Auto-generated history file
@@ -109,6 +148,13 @@ Uses `psutil` to gather resource usage statistics:
 - CPU usage percentage
 - Memory usage percentage
 - Disk usage percentage
+- Swap usage
+- System uptime (via `psutil.boot_time()`)
+
+#### ProcessMonitor (metrics.py)
+Top-N process tracking:
+- Top processes by CPU usage
+- Top processes by memory usage
 
 #### TemperatureMonitor (temperatures.py)
 Monitors CPU temperature using `psutil.sensors_temperatures()`:
@@ -116,11 +162,34 @@ Monitors CPU temperature using `psutil.sensors_temperatures()`:
 - Returns temperature in Celsius or None if sensor not available
 - Labels: "Tctl" (total package temperature)
 
+#### GPUMonitor (gpu.py)
+GPU temperature and usage monitoring:
+- NVIDIA GPUs via pynvml
+- AMD GPUs via pyamdgpuinfo
+- Returns name, temperature, usage %, memory used/total
+
+#### DiskIOMonitor (disk_io.py)
+Disk read/write throughput via `psutil.disk_io_counters()`:
+- Per-disk read/write in MB
+- I/O operation counts
+
+#### NetworkTransferMonitor (net_io.py)
+Network transfer tracking via `psutil.net_io_counters()`:
+- Per-interface bytes sent/received
+- Packet counts and drop statistics
+
+#### SMARTMonitor (smart_health.py)
+Disk health monitoring via smartctl:
+- Health status (PASSED/FAILED)
+- Temperature (when available)
+- Power-on hours
+- Requires smartmontools and sudo privileges
+
 #### HealthMonitor (health.py)
-Evaluates metrics against predefined thresholds:
-- CPU/Memory/Disk: 70% = Warning, 90% = Critical, <70% = Healthy
-- Temperature: 85°C = Critical, 70-85°C = Warning, <70°C = Healthy
-- Returns status strings for display in reports
+Evaluates metrics against thresholds from config.toml:
+- CPU/Memory/Disk usage thresholds
+- Temperature thresholds
+- Returns Healthy/Warning/Critical status strings
 
 #### NetworkMonitor (network.py)
 Network connectivity information:
@@ -144,91 +213,78 @@ Main orchestration class that:
 - Combines all metrics into a unified report dictionary
 - Returns comprehensive system status
 
-#### HP Fan Control (hp_fan_control.py)
-HP-specific fan management using Linux hwmon:
-- Reads fan controller path from `/sys/class/hwmon/`
-- Provides functions to set/get PWM values
-- Supports HP Omen laptops with hwmon6 controller
-- Safe error handling for unsupported hardware
-
 ### Data Flow
 
 1. User selects "Show System Health Report" from menu
-2. `SystemHealthMonitor` is instantiated
-3. Each subsystem is queried (CPU, memory, disk, temp, network)
+2. `SystemHealthMonitor` is instantiated with config
+3. Each subsystem is queried (CPU, memory, disk, temp, network, GPU, processes)
 4. All metrics are combined into a single report dictionary
 5. `HistoryLogger` saves the report with timestamp
-6. Formatted output is displayed to user
-
-### File Structure
-
-**main.py**: Entry point with menu-driven interface
-**monitor.py**: Main orchestration and report generation
-**history.py**: JSON history file management
-**network.py**: Network diagnostics and connectivity checks
-**system_info.py**: System metadata collection
-**metrics.py**: Resource usage via psutil
-**temperatures.py**: CPU temperature monitoring
-**health.py**: Threshold-based status evaluation
-**hp_fan_control.py**: HP laptop fan control integration
+6. Formatted, color-coded output is displayed to user
 
 ## Configuration
 
+All settings are configured through `config.toml`:
+
 ### Thresholds
-
-Edit `health.py` to customize thresholds:
-
-```python
-def get_usage_status(self, value):
-    if value < 70:  # Warning threshold
-        return "Warning"
-    elif value < 90:  # Critical threshold
-        return "Critical"
-    else:
-        return "Healthy"
+```toml
+[thresholds]
+usage_warning = 70    # Warning threshold for CPU/memory/disk usage
+usage_critical = 90   # Critical threshold
+temp_warning = 70     # Warning threshold for temperature (Celsius)
+temp_critical = 85    # Critical threshold
 ```
 
-### Custom History File
+### Display Options
+```toml
+[display]
+show_gpu = true       # Show GPU info (requires pynvml or pyamdgpuinfo)
+show_disk_io = true   # Show disk I/O stats
+show_net_io = true    # Show network transfer stats
+show_process = true   # Show top-N processes
+top_n_processes = 5   # Number of top processes to display
+show_smart = true     # Show SMART health (requires smartmontools)
+color_output = true   # Enable color output (requires rich or colorama)
+```
 
-Modify `history.py` to use a different history file:
-
-```python
-def __init__(self, filename="custom_history.json"):
-    self.filename = filename
+### Report Options
+```toml
+[report]
+history_file = "history.json"
+cpu_interval = 0.5
+check_all_partitions = true
+internet_ping_host = "1.1.1.1"
 ```
 
 ## Output Format
 
 ### Health Report Output
 ```
-========================================
+==================================================
        SYSTEM HEALTH REPORT
-========================================
-Hostname: your-hostname
-CPU Usage: 12.3% - Healthy
-Memory Usage: 45.6% - Healthy
-Disk Usage: 25.7% - Healthy
-CPU Temperature: 62.9°C - Healthy
-Interface: wlan0
-IP Address: 10.0.0.208
-Gateway: 10.0.0.1
-Gateway Ping: 4.71 ms
-Internet: Online
-Internet Ping: 24.6 ms
-========================================
+==================================================
+  Hostname: your-hostname
+  Uptime:   3d 14h 22m
+  CPU:      12.3% - Healthy
+  Memory:   45.6% - Healthy
+  Disk:     25.7% - Healthy
+  Temp:     62.9°C - Healthy
+  ...
+==================================================
 ```
 
 ### History Summary Output
 ```
-========================================
+==================================================
        HISTORY SUMMARY
-========================================
-Average CPU Usage: 8.2%
-Highest CPU Usage: 24.5%
-Average Memory Usage: 41.3%
-Average CPU Temp: 61.5°C
-Highest CPU Temp: 67.2°C
-========================================
+==================================================
+  Avg CPU:      8.2%
+  Highest CPU:  24.5%
+  Avg Memory:   41.3%
+  Highest Mem:  52.1%
+  Avg Temp:     61.5°C
+  Highest Temp: 67.2°C
+==================================================
 ```
 
 ## Troubleshooting
@@ -242,6 +298,16 @@ Highest CPU Temp: 67.2°C
 - Ensure you have sudo privileges (fan control requires root)
 - Check hwmon path with: `ls /sys/class/hwmon/`
 - HP fans require specific PWM controllers (typically hwmon6)
+
+### SMART Health Not Showing
+- Install smartmontools: `sudo apt install smartmontools`
+- SMART queries require sudo privileges
+- Disable with `show_smart = false` in config.toml
+
+### GPU Not Showing
+- NVIDIA: Install pynvml package and NVIDIA drivers
+- AMD: Install pyamdgpuinfo package
+- Both are optional and auto-detected
 
 ### History File Issues
 - Permission errors if running without sudo
@@ -263,7 +329,7 @@ Created for Linux system health monitoring and HP fan control automation.
 ```bash
 cd /home/sirmace72/linux-system-health-monitor
 source venv/bin/activate
-pip install psutil
+pip install -e .
 python3 main.py
 ```
 

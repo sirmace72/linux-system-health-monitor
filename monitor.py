@@ -9,6 +9,7 @@ from net_io import NetworkTransferMonitor
 from disk_io import DiskIOMonitor
 from gpu import GPUMonitor
 from health import HealthMonitor
+from smart_health import SMARTMonitor
 
 
 class SystemHealthMonitor:
@@ -25,6 +26,7 @@ class SystemHealthMonitor:
         self.disk_io = DiskIOMonitor()
         self.gpu = GPUMonitor()
         self.processes = ProcessMonitor()
+        self.smart = SMARTMonitor()
 
     def get_system_report(self) -> dict[str, Any]:
         """Collect all metrics and return a unified report dict."""
@@ -88,5 +90,15 @@ class SystemHealthMonitor:
         if self._config.show_net_io:
             report["net_io"] = self.net_io.get_transfer_stats()
             report["net_io_total"] = self.net_io.get_total_transfers()
+
+        # Top processes (only if enabled)
+        if self._config.show_process:
+            n = self._config.top_n_processes
+            report["top_cpu"] = self.processes.get_top_processes_by_cpu(n)
+            report["top_memory"] = self.processes.get_top_processes_by_memory(n)
+
+        # SMART health (only if enabled)
+        if self._config.show_smart:
+            report["smart_health"] = self.smart.get_smart_health()
 
         return report

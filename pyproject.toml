@@ -7,7 +7,7 @@ name = "linux-system-health-monitor"
 version = "0.1.0"
 description = "Comprehensive system health monitoring tool for Linux with HP fan control integration"
 requires-python = ">=3.10"
-dependencies = ["psutil"]
+dependencies = ["psutil", "rich"]
 
 [project.scripts]
 health-monitor = "main:main"
