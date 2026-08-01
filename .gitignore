@@ -9,7 +9,6 @@ __pycache__/
 # Environment variables
 .env
 
-
 # Configuration files
 config.json
 settings.json
@@ -23,4 +22,3 @@ data/
 
 # History files
 history.json
-Test/__pycache__/

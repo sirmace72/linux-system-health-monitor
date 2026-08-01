@@ -1,13 +1,18 @@
 #!/usr/bin/env python3
-
 """HP Omen fan control."""
 
 import glob
+import logging
 import os
-import sys
 import subprocess
+import sys
+from typing import Tuple
 
-def write_root(path, value):
+logger = logging.getLogger(__name__)
+
+
+def write_root(path: str, value: int) -> None:
+    """Write a value to a sysfs control file using sudo tee."""
     subprocess.run(
         ["sudo", "tee", path],
         input=str(value),
@@ -16,26 +21,27 @@ def write_root(path, value):
         check=True,
     )
 
-def get_hwmon_path():
+
+def get_hwmon_path() -> str | None:
     """Find the HP hwmon controller automatically."""
     for name_file in glob.glob("/sys/class/hwmon/hwmon*/name"):
         try:
-            with open(name_file, "r") as file:
+            with open(name_file, "r", encoding="utf-8") as file:
                 if file.read().strip() == "hp":
                     return os.path.dirname(name_file)
-        except OSError:
+        except OSError as exc:
+            logger.debug("Could not read %s: %s", name_file, exc)
             continue
-
     return None
 
 
-def write_value(path, value):
+def write_value(path: str, value: int) -> None:
     """Write a value to a sysfs control file."""
     with open(path, "w") as file:
         file.write(str(value))
 
 
-def set_fan_speed(percent):
+def set_fan_speed(percent: int) -> bool:
     """Set fan speed to a specific percentage (25, 50, 75, or 100)."""
     valid = [25, 50, 75, 100]
     if percent not in valid:
@@ -54,17 +60,16 @@ def set_fan_speed(percent):
         write_root(f"{hwmon_path}/pwm1", pwm_value)
         print(f"✓ Fans set to {percent}% (PWM: {pwm_value}/255)")
         return True
-
     except subprocess.CalledProcessError as error:
         print(f"ERROR: {error}")
         return False
 
 
-def set_max_speed():
+def set_max_speed() -> bool:
     return set_fan_speed(100)
 
 
-def set_min_speed():
+def set_min_speed() -> bool:
     """Set fans to minimum speed (0%)."""
     hwmon_path = get_hwmon_path()
 
@@ -75,16 +80,15 @@ def set_min_speed():
     try:
         write_root(f"{hwmon_path}/pwm1_enable", 1)
         write_root(f"{hwmon_path}/pwm1", 0)
-
         print("✓ Fans set to minimum speed")
         return True
-
     except subprocess.CalledProcessError as error:
         print(f"ERROR: {error}")
         return False
 
-def get_current_speed():
-    """Read actual fan RPM."""
+
+def get_current_speed() -> Tuple[int, int] | None:
+    """Read actual fan RPM for fan 1 and fan 2."""
     hwmon_path = get_hwmon_path()
 
     if hwmon_path is None:
@@ -92,20 +96,20 @@ def get_current_speed():
         return None
 
     try:
-        with open(f"{hwmon_path}/fan1_input", "r") as file:
+        with open(f"{hwmon_path}/fan1_input", "r", encoding="utf-8") as file:
             fan1 = int(file.read().strip())
 
-        with open(f"{hwmon_path}/fan2_input", "r") as file:
+        with open(f"{hwmon_path}/fan2_input", "r", encoding="utf-8") as file:
             fan2 = int(file.read().strip())
 
         return fan1, fan2
-
     except OSError as error:
         print(f"ERROR: {error}")
         return None
 
 
-def main():
+def main() -> None:
+    """Standalone CLI for fan control."""
     if os.geteuid() != 0:
         print("Please run this program with sudo:")
         print(f"sudo {sys.executable} {sys.argv[0]}")
@@ -122,27 +126,20 @@ def main():
 
     if choice == "1":
         set_max_speed()
-
     elif choice == "2":
         set_min_speed()
-
     elif choice == "3":
         speeds = get_current_speed()
-
         if speeds is not None:
             fan1, fan2 = speeds
             print(f"Fan 1: {fan1} RPM")
             print(f"Fan 2: {fan2} RPM")
-
     elif choice == "0":
-         print("Goodbye!")
-         sys.exit(0)
-
+        print("Goodbye!")
+        sys.exit(0)
     else:
         print("Invalid option")
-    
-    
 
 
 if __name__ == "__main__":
-    main()# test
+    main()

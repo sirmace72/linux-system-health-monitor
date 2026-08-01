@@ -1,7 +1,8 @@
 import argparse
 
 
-def get_arguments():
+def get_arguments() -> argparse.Namespace:
+    """Parse CLI arguments."""
     parser = argparse.ArgumentParser(
         description="Linux System Health Monitor"
     )
@@ -13,7 +14,7 @@ def get_arguments():
             "network",
             "history",
             "full-report",
-        ]
+        ],
     )
 
     return parser.parse_args()

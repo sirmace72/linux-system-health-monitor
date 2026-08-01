@@ -1,69 +1,69 @@
+import logging
 import subprocess
+
+logger = logging.getLogger(__name__)
 
 
 class NetworkMonitor:
-    def get_active_interface(self):
+    """Network connectivity information via subprocess calls."""
+
+    def get_active_interface(self) -> str | None:
         result = subprocess.run(
             ["ip", "route"],
             capture_output=True,
-            text=True
+            text=True,
         )
 
         for line in result.stdout.splitlines():
             if line.startswith("default"):
                 parts = line.split()
-
                 if "dev" in parts:
                     return parts[parts.index("dev") + 1]
 
         return None
 
-    def get_ip_address(self):
+    def get_ip_address(self) -> str | None:
         interface = self.get_active_interface()
-
         if interface is None:
             return None
 
         result = subprocess.run(
             ["ip", "-4", "addr", "show", interface],
             capture_output=True,
-            text=True
+            text=True,
         )
 
         for line in result.stdout.splitlines():
             line = line.strip()
-
             if line.startswith("inet "):
                 return line.split()[1].split("/")[0]
 
         return None
 
-    def get_default_gateway(self):
+    def get_default_gateway(self) -> str | None:
         result = subprocess.run(
             ["ip", "route"],
             capture_output=True,
-            text=True
+            text=True,
         )
 
         for line in result.stdout.splitlines():
             if line.startswith("default"):
                 parts = line.split()
-
                 if "via" in parts:
                     return parts[parts.index("via") + 1]
 
         return None
 
-    def get_gateway_connection_status(self):
+    def get_gateway_connection_status(self) -> str:
         gateway = self.get_default_gateway()
-
         if gateway is None:
             return "No default gateway found."
 
         result = subprocess.run(
             ["ping", "-c", "1", gateway],
             capture_output=True,
-            text=True
+            text=True,
         )
 
         if result.returncode == 0:
@@ -71,15 +71,21 @@ class NetworkMonitor:
 
         return f"Failed to connect to the gateway {gateway}."
 
-    def get_ping_time(self, host):
+    @staticmethod
+    def get_ping_time(host: str | None) -> float | None:
         if host is None:
             return None
 
-        result = subprocess.run(
-            ["ping", "-c", "1", host],
-            capture_output=True,
-            text=True
-        )
+        try:
+            result = subprocess.run(
+                ["ping", "-c", "1", host],
+                capture_output=True,
+                text=True,
+                timeout=5,
+            )
+        except subprocess.TimeoutExpired:
+            logger.debug("Ping to %s timed out", host)
+            return None
 
         if result.returncode != 0:
             return None

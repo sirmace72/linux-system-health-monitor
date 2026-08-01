@@ -6,34 +6,38 @@ from health import HealthMonitor
 
 
 class SystemHealthMonitor:
-    def __init__(self):
+    """Orchestrates all monitoring components and produces a unified report."""
+
+    def __init__(self) -> None:
         self.system = SystemInfo()
         self.metrics = SystemMetrics()
         self.temperatures = TemperatureMonitor()
         self.network = NetworkMonitor()
         self.health = HealthMonitor()
 
-    def get_system_report(self) -> dict:
+    def get_system_report(self) -> dict[str, object]:
+        """Collect all metrics and return a unified report dict."""
         hostname = self.system.get_hostname()
         cpu_usage = self.metrics.get_cpu_usage()
         cpu_status = self.health.get_usage_status(cpu_usage)
         memory_usage = self.metrics.get_memory_usage()
         memory_status = self.health.get_usage_status(memory_usage)
         disk_usage = self.metrics.get_disk_usage()
-        disk_status = self.health.get_usage_status(disk_usage)  
+        disk_status = self.health.get_usage_status(disk_usage)
         cpu_temperature = self.temperatures.get_cpu_temperature()
-        temperature_status = (
-            self.health.get_temperature_status(cpu_temperature)
-            if cpu_temperature is not None
-            else "Unavailable"
-        )
+        temperature_status: str
+        if cpu_temperature is not None:
+            temperature_status = self.health.get_temperature_status(cpu_temperature)
+        else:
+            temperature_status = "Unavailable"
+
         interface = self.network.get_active_interface()
         ip_address = self.network.get_ip_address()
         gateway = self.network.get_default_gateway()
         gateway_ping = self.network.get_ping_time(gateway)
         internet_ping = self.network.get_ping_time("1.1.1.1")
 
-        report = {
+        return {
             "hostname": hostname,
             "cpu_usage": cpu_usage,
             "cpu_status": cpu_status,
@@ -47,6 +51,5 @@ class SystemHealthMonitor:
             "interface": interface,
             "ip_address": ip_address,
             "gateway": gateway,
-            "gateway_ping": gateway_ping
+            "gateway_ping": gateway_ping,
         }
-        return report

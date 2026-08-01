@@ -2,11 +2,13 @@ import psutil
 
 
 class SystemMetrics:
-    def get_cpu_usage(self):
-        return psutil.cpu_percent(interval=1)
+    """Collect resource usage statistics via psutil."""
 
-    def get_memory_usage(self):
+    def get_cpu_usage(self) -> float:
+        return psutil.cpu_percent(interval=0.5)
+
+    def get_memory_usage(self) -> float:
         return psutil.virtual_memory().percent
 
-    def get_disk_usage(self):
-        return psutil.disk_usage("/").percent
+    def get_disk_usage(self, path: str = "/") -> float:
+        return psutil.disk_usage(path).percent

@@ -1,28 +1,46 @@
+import fcntl
 import json
+import logging
 from datetime import datetime
+from typing import Any
 
+logger = logging.getLogger(__name__)
 
 
 class HistoryLogger:
-    def __init__(self, filename="history.json"):
+    """Persistent JSON history with file locking to prevent race conditions."""
+
+    def __init__(self, filename: str = "history.json") -> None:
         self.filename = filename
-    
-    def save_report(self, report):
+
+    def save_report(self, report: dict[str, Any]) -> None:
         report["timestamp"] = datetime.now().isoformat()
-        try:
-            with open(self.filename, "r") as file:
-                history = json.load(file)
-        except FileNotFoundError:
-            history = []  
-        
-        history.append(report)
 
-        with open(self.filename, "w") as file:
-            json.dump(history, file, indent=4)
+        file_lock = f"{self.filename}.lock"
+        with open(file_lock, "w") as lockfile:
+            try:
+                fcntl.flock(lockfile.fileno(), fcntl.LOCK_EX)
+            except OSError as exc:
+                logger.warning("Could not acquire file lock: %s", exc)
 
-    def get_average(self, key):
+            try:
+                try:
+                    with open(self.filename, "r", encoding="utf-8") as file:
+                        history: list[dict[str, Any]] = json.load(file)
+                except FileNotFoundError:
+                    history = []
+
+                history.append(report)
+
+                with open(self.filename, "w", encoding="utf-8") as file:
+                    json.dump(history, file, indent=4)
+
+                logger.debug("Saved report to %s (total: %d)", self.filename, len(history))
+            finally:
+                fcntl.flock(lockfile.fileno(), fcntl.LOCK_UN)
+
+    def get_average(self, key: str) -> float | None:
         history = self.load_history()
-
         if not history:
             return None
 
@@ -37,16 +55,15 @@ class HistoryLogger:
 
         return sum(values) / len(values)
 
-    def load_history(self):
+    def load_history(self) -> list[dict[str, Any]]:
         try:
-            with open(self.filename, "r") as file:
+            with open(self.filename, "r", encoding="utf-8") as file:
                 return json.load(file)
         except FileNotFoundError:
             return []
-        
-    def get_highest(self, key):
-        history = self.load_history()
 
+    def get_highest(self, key: str) -> float | None:
+        history = self.load_history()
         if not history:
             return None
 
@@ -60,7 +77,8 @@ class HistoryLogger:
             return None
 
         return max(values)
-    def get_history_summary(self):
+
+    def get_history_summary(self) -> dict[str, float | None]:
         return {
             "average_cpu": self.get_average("cpu_usage"),
             "highest_cpu": self.get_highest("cpu_usage"),
