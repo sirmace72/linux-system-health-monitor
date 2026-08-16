@@ -50,15 +50,32 @@ class ProcessMonitor:
     @staticmethod
     def get_top_processes_by_cpu(n: int = 5) -> list[dict[str, Any]]:
         """Return top N processes by CPU usage."""
+        import time
+
+        # First pass: capture the Process objects and prime each CPU baseline.
+        # psutil's non-blocking cpu_percent() returns 0.0 on the first call for
+        # a given instance, so prime now and read the real delta below by
+        # reusing those exact objects (no reliance on psutil's internal cache).
+        procs: list[psutil.Process] = []
+        for proc in psutil.process_iter(["pid", "name", "memory_percent"]):
+            try:
+                proc.cpu_percent(None)
+                procs.append(proc)
+            except (psutil.NoSuchProcess, psutil.AccessDenied):
+                continue
+
+        time.sleep(0.5)
+
+        # Second read from the same Process objects -> meaningful CPU delta.
         processes: list[dict[str, Any]] = []
-        for proc in psutil.process_iter(["pid", "name", "cpu_percent", "memory_percent"]):
+        for proc in procs:
             try:
                 info = proc.info
                 if info is not None:
                     processes.append({
                         "pid": info["pid"],
                         "name": info["name"] or "unknown",
-                        "cpu_percent": info["cpu_percent"] or 0.0,
+                        "cpu_percent": proc.cpu_percent(None) or 0.0,
                         "memory_percent": info["memory_percent"] or 0.0,
                     })
             except (psutil.NoSuchProcess, psutil.AccessDenied):
