@@ -16,6 +16,7 @@ A comprehensive system health monitoring tool for Linux with HP fan control inte
 - **HP Fan Control**: Set fans to maximum/minimum speed and check current fan speeds
 - **History Logging**: Automatically saves all health reports to a JSON file for tracking trends
 - **Color Output**: Color-coded status indicators via rich library
+- **GNOME GUI**: Read-only dashboard built with GTK 4 and libadwaita (`python gui.py`)
 - **Configurable Thresholds**: All thresholds configurable via `config.toml`
 
 ## Hardware Requirements
@@ -105,6 +106,58 @@ python3 main.py history
 python3 main.py full-report
 ```
 
+## GNOME GUI
+
+A read-only GNOME dashboard (GTK 4 + libadwaita) that reuses the same
+`SystemHealthMonitor` backend as the CLI. It displays:
+
+- **System Health**: CPU, memory, and disk usage with health status, CPU temperature
+- **Network**: active interface, IPv4 address, gateway reachability, internet connectivity and ping time
+- **GPU**: name, temperature, usage, and memory (when available)
+- **System Information**: hostname, OS, kernel, CPU model, architecture, uptime
+
+The dashboard auto-refreshes about every 2 seconds in a background worker
+thread (so the UI never blocks) and follows the system GNOME light/dark theme
+automatically. Unavailable metrics are shown as "Unavailable" instead of
+failing.
+
+### System packages (Ubuntu/Debian)
+
+GTK 4, libadwaita, and GObject Introspection are installed through the
+package manager, not pip:
+
+```bash
+sudo apt install \
+    python3-gi \
+    python3-gi-cairo \
+    gir1.2-gtk-4.0 \
+    gir1.2-adw-1
+```
+
+### Python GUI dependencies
+
+The GUI extras (PyGObject and pycairo) are declared in `pyproject.toml`:
+
+```bash
+pip install -e .[gui]
+```
+
+> If the pip build of PyGObject/pycairo fails, install the build dependencies
+> first: `sudo apt install build-essential pkg-config libcairo2-dev libgirepository1.0-dev`
+
+### Run
+
+```bash
+# Activate the Python virtual environment (see Setup above)
+source venv/bin/activate
+
+# CLI
+python main.py
+
+# GNOME GUI
+python gui.py
+```
+
 ## How It Works
 
 ### Architecture
@@ -128,6 +181,8 @@ linux-system-health-monitor/
 ├── config.py            # Configuration loader
 ├── config.toml          # User-customizable configuration
 ├── color.py             # Color output helpers
+├── gui.py               # GNOME GUI entry point (GTK 4 + libadwaita)
+├── gui_helpers.py       # GTK-free snapshot formatting for the GUI
 ├── hp_fan_control.py    # HP-specific fan control via hwmon
 ├── README.md            # This documentation file
 └── history.json         # Auto-generated history file
