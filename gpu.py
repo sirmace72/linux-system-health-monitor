@@ -34,9 +34,9 @@ class GPUMonitor:
             name      - human-readable GPU name
             temp      - temperature in °C (or None)
             usage     - GPU utilization % (or None)
-            mem_used  - memory used in MiB (or None)
-            mem_total - memory total in MiB (or None)
-        """
+            mem_used  - memory used in bytes (or None)
+            mem_total - memory total in bytes (or None) 
+            """
         results: list[dict[str, Any]] = []
         results.extend(self._get_nvidia_info())
         results.extend(self._get_amd_info())
@@ -80,8 +80,9 @@ class GPUMonitor:
 
                 try:
                     mem = nvidia_nvml.nvmlDeviceGetMemoryInfo(handle)
-                    info["mem_used"] = mem.used / (1024 * 1024)
-                    info["mem_total"] = mem.total / (1024 * 1024)
+                    info["mem_used"] = mem.used
+                    info["mem_total"] = mem.total
+
                 except Exception:
                     info["mem_used"] = None
                     info["mem_total"] = None

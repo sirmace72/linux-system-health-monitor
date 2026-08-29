@@ -16,3 +16,7 @@ health-monitor = "main:main"
 dev = ["pytest"]
 nvidia = ["pynvml"]
 amd = ["pyamdgpuinfo"]
+gui = [
+    "PyGObject>=3.48",
+    "pycairo>=1.26",
+]
